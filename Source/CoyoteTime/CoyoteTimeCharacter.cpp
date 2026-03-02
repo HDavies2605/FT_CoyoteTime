@@ -56,8 +56,58 @@ ACoyoteTimeCharacter::ACoyoteTimeCharacter()
 
 void ACoyoteTimeCharacter::BeginPlay()
 {
-	// Call the base class  
+	// Call the base class
 	Super::BeginPlay();
+}
+
+void ACoyoteTimeCharacter::Tick(float DeltaTime)
+{
+	UpdateCoyoteTime(DeltaTime);
+}
+
+void ACoyoteTimeCharacter::CoyoteJump() 
+{
+	if (GetCharacterMovement()->IsMovingOnGround() || bCanUseCoyoteTime)
+	{
+		// Reset coyote time
+		bCanUseCoyoteTime = false;
+		TimeSinceLeftGround = 0.0f;
+
+		// Perform the jump
+		LaunchCharacter(FVector(0.0f, 0.0f, GetCharacterMovement()->JumpZVelocity), false, true);
+	}
+}
+
+void ACoyoteTimeCharacter::Landed(const FHitResult& Hit) 
+{
+	Super::Landed(Hit);
+
+	// Reset coyote time variables
+	TimeSinceLeftGround = 0.0f;
+	bCanUseCoyoteTime = false;
+}
+
+void ACoyoteTimeCharacter::UpdateCoyoteTime(float deltaTime) 
+{
+	if (!GetCharacterMovement()->IsMovingOnGround())
+	{
+		TimeSinceLeftGround += deltaTime;
+
+		if (TimeSinceLeftGround <= CoyoteTimeDuration)
+		{
+			bCanUseCoyoteTime = true;
+		}
+		else
+		{
+			bCanUseCoyoteTime = false;
+		}
+	}
+	else
+	{
+		// Player is on the ground, reset variables
+		TimeSinceLeftGround = 0.0f;
+		bCanUseCoyoteTime = false;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,7 +128,7 @@ void ACoyoteTimeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACoyoteTimeCharacter::CoyoteJump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
